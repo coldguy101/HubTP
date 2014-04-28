@@ -1,0 +1,10 @@
+author: coldguy101
+description: Controls Hub Teleportation for Players
+main: me.coldguy101.HubTP.HubTP
+name: HubTP
+version: '1.0'
+
+commands:
+    hubtp:
+        description: Moves the player who uses the command to the least populated hub server of the specified type
+        usage: /<command> <HubType>
