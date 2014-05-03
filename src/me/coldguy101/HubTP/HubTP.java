@@ -1,6 +1,5 @@
 package me.coldguy101.HubTP;
 
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -8,12 +7,16 @@ import org.bukkit.plugin.java.JavaPlugin;
  */
 public class HubTP extends JavaPlugin
 {
+	ServerTypeManager stm;
 	BungeeUtil bUtil;
 
 	@Override
 	public void onEnable()
 	{
+		saveDefaultConfig();
 		bUtil = new BungeeUtil(this);
+		stm = new ServerTypeManager(this);
+
 		getCommand("hubtp").setExecutor(new CommandHubTP());
 	}
 

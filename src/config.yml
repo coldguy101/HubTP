@@ -1,0 +1,13 @@
+# default config.yml
+# message: Hello World and Welcome! :)
+types:
+  hub:
+    - hub1
+    - hub2
+    - hub3
+    - hub4
+  hghub:
+    - HGHub1
+    - HGHub2
+    - HGHub3
+    - HGHub4

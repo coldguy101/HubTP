@@ -26,11 +26,10 @@ public class BungeeUtil implements PluginMessageListener
 	 */
 	public BungeeUtil(Plugin pl)
 	{
-		pingTask = new PlayerCountCheckTask().runTaskTimerAsynchronously(plugin, 100L, 100L);
 		plugin = pl;
+		pingTask = new PlayerCountCheckTask().runTaskTimerAsynchronously(plugin, 100L, 200L);
 		Bukkit.getMessenger().registerOutgoingPluginChannel(pl, pmChannel);
 		Bukkit.getMessenger().registerIncomingPluginChannel(pl, pmChannel, this);
-		getAllServers();
 	}
 
 	/**
@@ -57,7 +56,7 @@ public class BungeeUtil implements PluginMessageListener
 	/**
 	 * Should only run once at startup.
 	 */
-	public static void getAllServers()
+	public static void getAllOnlineServers()
 	{
 		if(Bukkit.getOnlinePlayers()[0] != null)
 		{
@@ -118,21 +117,27 @@ public class BungeeUtil implements PluginMessageListener
 	@Override
 	public void onPluginMessageReceived(String channel, Player player, byte[] message)
 	{
+		//Bukkit.broadcastMessage("Message Received:");
 		if(!channel.equalsIgnoreCase(pmChannel))
 			return;
 
 		DataInputStream in = new DataInputStream(new ByteArrayInputStream(message));
 		try
 		{
-			String s = in.readUTF();
+			String command = in.readUTF();
+			String answer = in.readLine();
 
-			if(s.contains(","))
+			Bukkit.broadcastMessage(command);
+			Bukkit.broadcastMessage(answer);
+			Bukkit.broadcastMessage("" + in.readInt());
+
+			if(command.equalsIgnoreCase("PlayerCount"))
 			{
-				sm.setServers(s.split(","));
+				sm.setServers(answer.trim().split(","));
 			}
 			else
 			{
-				sm.setServerCount(in.readUTF(), in.readInt());
+				sm.setServerCount(answer.trim(), in.readInt());
 			}
 		}
 		catch (IOException e)
@@ -147,7 +152,13 @@ public class BungeeUtil implements PluginMessageListener
 		@Override
 		public void run()
 		{
-			BungeeUtil.checkCurrentPlayersOnServers();
+			if(Bukkit.getOnlinePlayers().length > 0)
+			{
+				Bukkit.broadcastMessage("hihi");
+				BungeeUtil.getAllOnlineServers();
+//				sm.setServers(new String[]{"hg1","hg2","hg3","hg4","hg5","hg6","hub1","hub2","hub3"});
+				BungeeUtil.checkCurrentPlayersOnServers();
+			}
 		}
 	}
 }

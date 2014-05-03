@@ -1,6 +1,7 @@
 package me.coldguy101.HubTP;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -26,17 +27,25 @@ public class CommandHubTP implements CommandExecutor
 			{
 				String serv = args[0];
 
+				if(serv.equalsIgnoreCase("dumpservers"))
+				{
+					for(String s : sm.getServers())
+					{
+						player.sendMessage(ChatColor.RED + s + ChatColor.LIGHT_PURPLE + " > " + ChatColor.GREEN + sm.getServerCount(s));
+					}
+					return true;
+				}
 				if(!sm.getServers().contains(serv))
 				{
-					player.sendMessage("Sorry, that server does not exist!");
+					player.sendMessage(ChatColor.RED + "Sorry, that server does not exist!");
 					return false;
 				}
+				//put working code here.
 
-
+				return true;
 			}
 			else
 				return false;
-
 		}
 		else
 		{
@@ -55,19 +64,22 @@ public class CommandHubTP implements CommandExecutor
 				String playerName = args[0];
 				String serv = args[1];
 
-				if(serverContainsPlayer(playerName))
+				if(!serverContainsPlayer(playerName))
 				{
-
+					sender.sendMessage("Sorry! The server does not have a player of that name.");
+					return false;
 				}
 				if(!sm.getServers().contains(serv))
 				{
 					sender.sendMessage("Sorry, that server does not exist!");
+					return false;
 				}
+				//put working code here.
+				return true;
 			}
 			else
 				return false;
 		}
-		return false;
 	}
 
 	/**
