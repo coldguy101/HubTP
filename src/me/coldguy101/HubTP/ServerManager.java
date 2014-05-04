@@ -1,16 +1,13 @@
 package me.coldguy101.HubTP;
 
-import org.bukkit.entity.Player;
-
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * Created by Sean on 4/27/2014.
  */
 public class ServerManager
 {
-	private ArrayList<String> servers = new ArrayList<String>();
+	private Collection<String> servers = Collections.emptyList();
 	private HashMap<String, Integer> counts = new HashMap<String, Integer>();
 
 	public void setServerCount(String serv, int numP)
@@ -25,13 +22,10 @@ public class ServerManager
 
 	public void setServers(String[] allServersInConfig)
 	{
-		for(String s : allServersInConfig)
-		{
-			servers.add(s);
-		}
+		servers = new HashSet<String>(Arrays.asList(allServersInConfig));
 	}
 
-	public ArrayList<String> getServers()
+	public Collection<String> getServers()
 	{
 		return servers;
 	}
