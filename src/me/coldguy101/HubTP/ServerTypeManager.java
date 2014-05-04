@@ -2,8 +2,8 @@ package me.coldguy101.HubTP;
 
 import org.bukkit.plugin.Plugin;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -12,7 +12,7 @@ import java.util.Set;
 public class ServerTypeManager
 {
 	private Plugin plugin;
-	private HashMap<String, ArrayList<String>> typesToServers = new HashMap<String, ArrayList<String>>();
+	private HashMap<String, List<String>> typesToServers = new HashMap<String, List<String>>();
 
 	public ServerTypeManager(Plugin p)
 	{
@@ -25,7 +25,7 @@ public class ServerTypeManager
 		typesToServers.get(type).add(name);
 	}
 
-	public ArrayList<String> getAllServersFromType(String type)
+	public List<String> getAllServersFromType(String type)
 	{
 		return typesToServers.get(type);
 	}
@@ -35,7 +35,7 @@ public class ServerTypeManager
 		Set<String> ss = plugin.getConfig().getConfigurationSection("types").getKeys(false);
 		for(String type : ss)
 		{
-			typesToServers.put(type, (ArrayList<String>) plugin.getConfig().getList("types." + type));
+			typesToServers.put(type, plugin.getConfig().getStringList("types." + type));
 		}
 	}
 }

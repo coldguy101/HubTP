@@ -7,8 +7,8 @@ import org.bukkit.plugin.java.JavaPlugin;
  */
 public class HubTP extends JavaPlugin
 {
-	ServerTypeManager stm;
-	BungeeUtil bUtil;
+	private ServerTypeManager stm;
+	private BungeeUtil bUtil;
 
 	@Override
 	public void onEnable()

@@ -8,6 +8,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.*;
+import java.util.*;
 import java.util.logging.Level;
 
 /**
@@ -15,10 +16,12 @@ import java.util.logging.Level;
  */
 public class BungeeUtil implements PluginMessageListener
 {
-	private static ServerManager sm = new ServerManager();
-	private static String pmChannel = "BungeeCord";
-	private static Plugin plugin;
-	private static BukkitTask pingTask;
+	private ServerManager sm = new ServerManager();
+	private String pmChannel = "BungeeCord";
+	private Plugin plugin;
+	private BukkitTask pingTask;
+	private Map<String, List<PlayerCountCallback>> playerCountCallbacks = new HashMap<String, List<PlayerCountCallback>>();
+	private List<GetServersCallback> getServersCallbacks = new ArrayList<GetServersCallback>();
 
 	/**
 	 * Constructor. Pass it a JavaPlugin and it will be happy.
@@ -37,7 +40,7 @@ public class BungeeUtil implements PluginMessageListener
 	 * @param p
 	 * @param serv
 	 */
-	public static void movePlayerToServer(Player p, String serv)
+	public void movePlayerToServer(Player p, String serv)
 	{
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 		DataOutputStream out = new DataOutputStream(b);
@@ -56,56 +59,68 @@ public class BungeeUtil implements PluginMessageListener
 	/**
 	 * Should only run once at startup.
 	 */
-	public static void getAllOnlineServers()
+	public synchronized void getAllOnlineServers(GetServersCallback callback)
 	{
-		if(Bukkit.getOnlinePlayers()[0] != null)
+		if (Bukkit.getOnlinePlayers()[0] == null)
 		{
-			ByteArrayOutputStream b = new ByteArrayOutputStream();
-			DataOutputStream out = new DataOutputStream(b);
-			try
-			{
-				out.writeUTF("GetServers");
-			}
-			catch (IOException ex)
-			{
-				// Impossibru
-			}
-			Bukkit.getOnlinePlayers()[0].sendPluginMessage(plugin, pmChannel, b.toByteArray());
+			return;
 		}
-	}
 
-	/**
-	 * Checks all servers and gets player count
-	 */
-	public static void checkCurrentPlayersOnServers()
-	{
-		for(String s : sm.getServers())
+		if (callback != null)
 		{
-			checkCurrentPlayersOnServer(s);
+			getServersCallbacks.add(callback);
 		}
+		ByteArrayOutputStream b = new ByteArrayOutputStream();
+		DataOutputStream out = new DataOutputStream(b);
+		try
+		{
+			out.writeUTF("GetServers");
+		}
+		catch (IOException ex)
+		{
+			// Impossibru
+		}
+		Bukkit.getOnlinePlayers()[0].sendPluginMessage(plugin, pmChannel, b.toByteArray());
 	}
 
 	/**
 	 * Gets Player Count for the specified server
 	 * @param serv
 	 */
-	public static void checkCurrentPlayersOnServer(String serv)
+	public synchronized void checkCurrentPlayersOnServer(String serv, PlayerCountCallback callback)
 	{
-		if(Bukkit.getOnlinePlayers()[0] != null)
+		if (Bukkit.getOnlinePlayers()[0] == null)
 		{
-			ByteArrayOutputStream b = new ByteArrayOutputStream();
-			DataOutputStream out = new DataOutputStream(b);
-			try
-			{
-				out.writeUTF("PlayerCount");
-				out.writeUTF(serv);
-			}
-			catch (IOException ex)
-			{
-				// Impossibru
-			}
-			Bukkit.getOnlinePlayers()[0].sendPluginMessage(plugin, pmChannel, b.toByteArray());
+			return;
 		}
+
+		if (callback != null)
+		{
+			addPlayerCountCallback(serv, callback);
+		}
+		ByteArrayOutputStream b = new ByteArrayOutputStream();
+		DataOutputStream out = new DataOutputStream(b);
+		try
+		{
+			out.writeUTF("PlayerCount");
+			out.writeUTF(serv);
+		}
+		catch (IOException ex)
+		{
+			// Impossibru
+		}
+		Bukkit.getOnlinePlayers()[0].sendPluginMessage(plugin, pmChannel, b.toByteArray());
+	}
+
+	private synchronized void addPlayerCountCallback(String serv, PlayerCountCallback callback)
+	{
+		List<PlayerCountCallback> callbacks = playerCountCallbacks.get(serv);
+		if (callbacks == null)
+		{
+			callbacks = new ArrayList<PlayerCountCallback>();
+			playerCountCallbacks.put(serv, callbacks);
+		}
+		callbacks.add(callback);
 	}
 
 	/**
@@ -125,19 +140,28 @@ public class BungeeUtil implements PluginMessageListener
 		try
 		{
 			String command = in.readUTF();
-			String answer = in.readLine();
-
 			Bukkit.broadcastMessage(command);
-			Bukkit.broadcastMessage(answer);
-			Bukkit.broadcastMessage("" + in.readInt());
 
-			if(command.equalsIgnoreCase("PlayerCount"))
+			if (command.equals("PlayerCount"))
 			{
-				sm.setServers(answer.trim().split(","));
+				String server = in.readUTF();
+				int playerCount = in.readInt();
+				for (PlayerCountCallback callback: takePlayerCountCallbacks(server))
+				{
+					callback.onPlayerCountReceived(server, playerCount);
+				}
+			}
+			else if (command.equals("GetServers"))
+			{
+				String[] serverList = in.readUTF().split(", ");
+				for (GetServersCallback callback: takeGetServersCallbacks())
+				{
+					callback.onServersReceived(serverList);
+				}
 			}
 			else
 			{
-				sm.setServerCount(answer.trim(), in.readInt());
+				plugin.getLogger().warning("Unexpected bungee message: " + command);
 			}
 		}
 		catch (IOException e)
@@ -147,18 +171,55 @@ public class BungeeUtil implements PluginMessageListener
 		}
 	}
 
+	private synchronized List<GetServersCallback> takeGetServersCallbacks()
+	{
+		List<GetServersCallback> callbacks = getServersCallbacks;
+		getServersCallbacks = new ArrayList<GetServersCallback>();
+		return callbacks;
+	}
+
+	private synchronized List<PlayerCountCallback> takePlayerCountCallbacks(String server)
+	{
+		List<PlayerCountCallback> callbacks = playerCountCallbacks.remove(server);
+		return callbacks == null ? Collections.<PlayerCountCallback>emptyList() : callbacks;
+	}
+
 	private class PlayerCountCheckTask extends BukkitRunnable
 	{
 		@Override
 		public void run()
 		{
-			if(Bukkit.getOnlinePlayers().length > 0)
+			if (Bukkit.getOnlinePlayers().length <= 0)
 			{
-				Bukkit.broadcastMessage("hihi");
-				BungeeUtil.getAllOnlineServers();
-//				sm.setServers(new String[]{"hg1","hg2","hg3","hg4","hg5","hg6","hub1","hub2","hub3"});
-				BungeeUtil.checkCurrentPlayersOnServers();
+				return;
 			}
+			Bukkit.broadcastMessage("hihi");
+			getAllOnlineServers(new GetServersCallback()
+			{
+				@Override
+				public void onServersReceived(String[] serverList)
+				{
+					for (String server: serverList)
+					{
+						checkCurrentPlayersOnServer(server, new PlayerCountCallback()
+						{
+							@Override
+							public void onPlayerCountReceived(String serverName, int playerCount)
+							{
+								sm.setServerCount(serverName, playerCount);
+							}
+						});
+					}
+				}
+			});
 		}
+	}
+
+	public interface PlayerCountCallback {
+		void onPlayerCountReceived(String serverName, int playerCount);
+	}
+
+	public interface GetServersCallback {
+		void onServersReceived(String[] serverList);
 	}
 }

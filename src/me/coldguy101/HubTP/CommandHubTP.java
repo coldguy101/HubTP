@@ -64,7 +64,9 @@ public class CommandHubTP implements CommandExecutor
 				String playerName = args[0];
 				String serv = args[1];
 
-				if(!serverContainsPlayer(playerName))
+				// Since this will be performed by a human, no need to use UUIDs (that would be counterproductive)
+				// noinspection deprecation
+				if(Bukkit.getPlayerExact(playerName) == null)
 				{
 					sender.sendMessage("Sorry! The server does not have a player of that name.");
 					return false;
@@ -80,22 +82,5 @@ public class CommandHubTP implements CommandExecutor
 			else
 				return false;
 		}
-	}
-
-	/**
-	 * Checks if the server the plugin is installed on contains a player with the given player name.
-	 * @param pName
-	 * @return
-	 */
-	private boolean serverContainsPlayer(String pName)
-	{
-		for(Player p : Bukkit.getOnlinePlayers())
-		{
-			if(p.getName().equals(pName))
-			{
-				return true;
-			}
-		}
-		return false;
 	}
 }
